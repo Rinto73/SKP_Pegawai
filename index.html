@@ -16,6 +16,42 @@
                 origWarn.apply(console, args);
             };
         })();
+
+        // Global Error Handling untuk menangkap error di luar React tree (sebelum React di-mount)
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errorMessage = `Aplikasi mengalami kesalahan fatal: ${message} di ${source}:${lineno}`;
+            console.error("Global Error Caught:", errorMessage, error);
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-rose-50 flex items-center justify-center p-6 text-center">
+                    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-rose-200">
+                        <svg class="text-rose-600 mx-auto mb-6" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <h1 class="text-2xl font-black text-slate-800 tracking-tight mb-2">Terjadi Kesalahan Fatal!</h1>
+                        <p class="text-slate-500 text-sm leading-relaxed">
+                            Aplikasi tidak dapat dimuat. Mohon hubungi administrator sistem dan berikan detail berikut:
+                        </p>
+                        <details class="text-xs text-slate-600 mt-6 p-4 bg-slate-50 rounded-xl text-left border border-slate-100">
+                            <summary class="font-bold cursor-pointer text-slate-700">Detail Kesalahan</summary>
+                            <pre class="mt-2 whitespace-pre-wrap break-all text-slate-500">
+                                ${errorMessage}
+                                ${error ? error.stack : ''}
+                            </pre>
+                        </details>
+                        <button onclick="window.location.reload()" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-95">
+                            Muat Ulang Halaman
+                        </button>
+                    </div>
+                </div>
+            `;
+            return true; // Mencegah error muncul di console juga
+        };
+
+        window.onunhandledrejection = function(event) {
+            const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
+            console.error("Global Promise Rejection Caught:", errorMessage, event.reason);
+            // Anda bisa menggunakan logika yang sama dengan window.onerror untuk menampilkan UI
+            window.onerror(errorMessage, 'promise_rejection', 0, 0, event.reason);
+            return true;
+        };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +60,13 @@
     </style>
     <script>
       // Shim global untuk process.env agar kompatibel dengan library berbasis Node.js di browser
-      window.process = window.process || { env: { NODE_ENV: 'development' } };
+      // Tambahkan API_KEY di sini agar tersedia untuk Gemini API
+      window.process = window.process || { 
+        env: { 
+          NODE_ENV: 'development',
+          API_KEY: '' // Pastikan API_KEY ada. Jika Anda punya key, masukkan di sini.
+        } 
+      };
     </script>
 <script type="importmap">
 {
