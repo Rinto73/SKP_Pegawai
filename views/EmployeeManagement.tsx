@@ -1,7 +1,7 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Employee, Role } from '../types';
-import { Plus, Search, Edit2, Trash2, UserPlus, Shield, User, Users, Upload, Download, FileText, X, CheckCircle, FileSpreadsheet } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, UserPlus, Shield, User, Users, Upload, Download, FileText, X, CheckCircle, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
@@ -23,6 +23,11 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, onAd
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // State untuk Searchable Superior Dropdown
+  const [superiorSearch, setSuperiorSearch] = useState('');
+  const [isSuperiorDropdownOpen, setIsSuperiorDropdownOpen] = useState(false);
+  const superiorDropdownRef = useRef<HTMLDivElement>(null);
+
   const [formData, setFormData] = useState<Partial<Employee>>({
     nip: '',
     name: '',
@@ -32,21 +37,54 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, onAd
     superiorId: '',
   });
 
+  // Efek untuk menutup dropdown saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (superiorDropdownRef.current && !superiorDropdownRef.current.contains(event.target as Node)) {
+        setIsSuperiorDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Update superiorSearch saat formData.superiorId berubah (misal saat edit)
+  useEffect(() => {
+    if (formData.superiorId) {
+      const superior = employees.find(e => e.id === formData.superiorId);
+      if (superior) setSuperiorSearch(superior.name);
+      else setSuperiorSearch('');
+    } else {
+      setSuperiorSearch('');
+    }
+  }, [formData.superiorId, employees]);
+
   const filteredEmployees = employees.filter(emp => 
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.nip.includes(searchTerm)
   );
 
+  const filteredSuperiors = employees.filter(emp => {
+    // Jangan tampilkan diri sendiri dalam daftar atasan
+    if (editingEmp && emp.id === editingEmp.id) return false;
+    
+    const search = superiorSearch.toLowerCase();
+    return emp.name.toLowerCase().includes(search) || emp.nip.includes(search);
+  });
+
   const handleOpenAdd = () => {
     setEditingEmp(null);
     setFormData({ nip: '', name: '', position: '', role: Role.PELAKSANA, gender: 'L', superiorId: '' });
+    setSuperiorSearch('');
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (emp: Employee) => {
     setEditingEmp(emp);
     setFormData({ ...emp });
+    const superior = employees.find(e => e.id === emp.superiorId);
+    setSuperiorSearch(superior ? superior.name : '');
     setIsModalOpen(true);
   };
 
@@ -293,15 +331,75 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, onAd
                       {Object.values(Role).map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
-                  <div>
+                  
+                  {/* SEARCHABLE ATASAN LANGSUNG */}
+                  <div className="relative" ref={superiorDropdownRef}>
                     <label className="text-[11px] font-bold text-slate-400 uppercase mb-1 block tracking-wider">Atasan Langsung</label>
-                    <select className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white text-black"
-                      value={formData.superiorId} onChange={e => setFormData({...formData, superiorId: e.target.value})}>
-                      <option value="">Tidak ada</option>
-                      {employees.filter(e => e.id !== editingEmp?.id).map(e => (
-                        <option key={e.id} value={e.id}>{e.name}</option>
-                      ))}
-                    </select>
+                    <div 
+                      className="relative group cursor-text"
+                      onClick={() => setIsSuperiorDropdownOpen(true)}
+                    >
+                      <input 
+                        type="text"
+                        placeholder="Cari Nama/NIP Atasan..."
+                        className="w-full border border-slate-200 rounded-xl p-3 pr-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white text-black font-medium"
+                        value={superiorSearch}
+                        onChange={(e) => {
+                          setSuperiorSearch(e.target.value);
+                          setIsSuperiorDropdownOpen(true);
+                          if (!e.target.value) setFormData({...formData, superiorId: ''});
+                        }}
+                        onFocus={() => setIsSuperiorDropdownOpen(true)}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+
+                    {isSuperiorDropdownOpen && (
+                      <div className="absolute z-[60] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div 
+                          className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 text-xs font-bold text-slate-400 uppercase tracking-widest"
+                          onClick={() => {
+                            setFormData({...formData, superiorId: ''});
+                            setSuperiorSearch('');
+                            setIsSuperiorDropdownOpen(false);
+                          }}
+                        >
+                          --- Tidak ada Atasan ---
+                        </div>
+                        {filteredSuperiors.length === 0 ? (
+                          <div className="px-4 py-8 text-center text-slate-400 text-xs italic">
+                            Pegawai tidak ditemukan
+                          </div>
+                        ) : (
+                          filteredSuperiors.map(sub => (
+                            <div 
+                              key={sub.id}
+                              onClick={() => {
+                                setFormData({...formData, superiorId: sub.id});
+                                setSuperiorSearch(sub.name);
+                                setIsSuperiorDropdownOpen(false);
+                              }}
+                              className={`px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 flex items-center space-x-3 transition-colors ${formData.superiorId === sub.id ? 'bg-blue-50' : ''}`}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-blue-600 shrink-0">
+                                <User size={14} />
+                              </div>
+                              <div className="overflow-hidden">
+                                <p className="text-xs font-bold text-slate-800 truncate">{sub.name}</p>
+                                <p className="text-[9px] text-slate-400 font-medium truncate uppercase">{sub.position}</p>
+                              </div>
+                              {formData.superiorId === sub.id && (
+                                <div className="ml-auto text-blue-600">
+                                  <CheckCircle size={14} />
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
