@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { RHK, Employee, Role } from '../types';
-import { Plus, Edit2, Trash2, ChevronRight, ChevronDown, User, Target, Share2, MoreHorizontal, Shield } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronRight, ChevronDown, User, Target, Share2, MoreHorizontal, Shield, AlertCircle } from 'lucide-react';
 import RhkInterventionModal from '../components/RhkInterventionModal';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
@@ -253,7 +253,6 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
   const handleSaveRhk = async (formData: Partial<RHK>) => {
     if (!selectedEmployee) return;
     
-    // Kirim ke database melalui App.tsx
     await onSaveRhkRemote(
       { ...formData, id: editingRhk?.id },
       selectedEmployee.id,
@@ -263,63 +262,80 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
     setIsModalOpen(false);
   };
 
-  const topLeaders = employees.filter(e => !e.superiorId && e.role !== Role.ADMIN);
+  // Puncak unit kerja hanya SEKDA
+  const topLeaders = employees.filter(e => e.role === Role.SEKDA);
 
   return (
     <div className="min-h-screen bg-slate-50/50 -m-8 p-8 overflow-auto">
       <div className="mb-12">
         <h1 className="text-2xl font-black text-slate-800 tracking-tight">Diagram Cascading SKP</h1>
-        <p className="text-slate-500 text-sm">Klik tombol <b>"Intervensi"</b> pada pimpinan untuk membagikan tugas ke bawahan.</p>
+        <p className="text-slate-500 text-sm">Hanya <b>SEKDA</b> yang merupakan jabatan puncak unit kerja untuk mengawali cascading.</p>
       </div>
 
       <div className="inline-block min-w-full pb-32">
         <div className="flex flex-col items-center space-y-20">
-          {topLeaders.map(topLeader => {
-            const topRhks = rhks.filter(r => r.employeeId === topLeader.id && !r.parentRhkId);
-            return (
-              <div key={topLeader.id} className="flex flex-col items-center space-y-12 w-full">
-                <div className="bg-slate-900 text-white px-8 py-4 rounded-full shadow-2xl flex items-center space-x-4 border-4 border-white">
-                  <Share2 className="text-blue-400" size={20} />
-                  <div className="flex flex-col items-start">
-                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Jabatan Puncak Unit Kerja</span>
-                    <span className="text-sm font-bold">{topLeader.name} ({topLeader.position})</span>
-                  </div>
-                  <button 
-                    onClick={() => handleOpenAddTopRhk(topLeader)}
-                    className="ml-4 bg-blue-600 hover:bg-blue-700 p-2 rounded-full transition-transform active:scale-90"
-                    title="Tambah RHK Pimpinan"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-16 w-full">
-                  {topRhks.map(rhk => (
-                    <RhkDiagramNode 
-                      key={rhk.id} 
-                      rhk={rhk} 
-                      level={0}
-                      employees={employees}
-                      rhks={rhks}
-                      expandedRhkIds={expandedRhkIds}
-                      activeMenuId={activeMenuId}
-                      onToggleRhk={toggleRhk}
-                      onSetActiveMenu={setActiveMenuId}
-                      onEdit={handleOpenEditRhk}
-                      onDelete={(r) => setDeleteModal({isOpen: true, rhk: r})}
-                      onAddIntervention={handleOpenIntervention}
-                    />
-                  ))}
-                  
-                  {topRhks.length === 0 && (
-                    <div className="p-10 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-medium bg-white">
-                      Belum ada RHK Utama pimpinan. Klik (+) di atas untuk menambahkan.
-                    </div>
-                  )}
-                </div>
+          {topLeaders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-20 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-center max-w-lg mx-auto">
+              <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mb-6">
+                <Shield className="text-slate-300" size={40} />
               </div>
-            );
-          })}
+              <h3 className="text-xl font-bold text-slate-800 mb-2 tracking-tight">Data SEKDA Tidak Ditemukan</h3>
+              <p className="text-slate-500 text-sm leading-relaxed mb-8">
+                Sistem tidak menemukan pegawai dengan role <b>SEKDA</b>. Silakan daftarkan atau perbarui data pegawai terlebih dahulu di menu Manajemen Pegawai untuk memulai penyusunan Cascading SKP.
+              </p>
+              <div className="flex items-center space-x-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl border border-amber-100 text-xs font-bold">
+                <AlertCircle size={16} />
+                <span>Jabatan Pelaksana bukan merupakan jabatan puncak.</span>
+              </div>
+            </div>
+          ) : (
+            topLeaders.map(topLeader => {
+              const topRhks = rhks.filter(r => r.employeeId === topLeader.id && !r.parentRhkId);
+              return (
+                <div key={topLeader.id} className="flex flex-col items-center space-y-12 w-full">
+                  <div className="bg-slate-900 text-white px-8 py-4 rounded-full shadow-2xl flex items-center space-x-4 border-4 border-white">
+                    <Share2 className="text-blue-400" size={20} />
+                    <div className="flex flex-col items-start">
+                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Jabatan Puncak Unit Kerja (SEKDA)</span>
+                      <span className="text-sm font-bold">{topLeader.name} ({topLeader.position})</span>
+                    </div>
+                    <button 
+                      onClick={() => handleOpenAddTopRhk(topLeader)}
+                      className="ml-4 bg-blue-600 hover:bg-blue-700 p-2 rounded-full transition-transform active:scale-90"
+                      title="Tambah RHK Pimpinan"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-16 w-full">
+                    {topRhks.map(rhk => (
+                      <RhkDiagramNode 
+                        key={rhk.id} 
+                        rhk={rhk} 
+                        level={0}
+                        employees={employees}
+                        rhks={rhks}
+                        expandedRhkIds={expandedRhkIds}
+                        activeMenuId={activeMenuId}
+                        onToggleRhk={toggleRhk}
+                        onSetActiveMenu={setActiveMenuId}
+                        onEdit={handleOpenEditRhk}
+                        onDelete={(r) => setDeleteModal({isOpen: true, rhk: r})}
+                        onAddIntervention={handleOpenIntervention}
+                      />
+                    ))}
+                    
+                    {topRhks.length === 0 && (
+                      <div className="p-10 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-medium bg-white shadow-sm">
+                        Belum ada RHK Utama pimpinan (SEKDA). Klik (+) di atas untuk menambahkan.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
