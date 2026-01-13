@@ -221,7 +221,8 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
             Batal
           </button>
           <button 
-            onClick={() => onSave(formData)}
+            // Fixed type error by casting formData to any as parent handles ID generation for indicators
+            onClick={() => onSave(formData as any)}
             className="px-8 py-2.5 text-sm font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center space-x-2 active:scale-95"
           >
             <Save size={18} />
