@@ -1,0 +1,5 @@
+{
+  "name": "Sistem Manajemen Kinerja (SKP-Cascading)",
+  "description": "Aplikasi manajemen pembagian kinerja (SKP) dengan fitur cascading RHK (Rencana Hasil Kerja) dari pimpinan ke staf menggunakan intervensi berbasis AI untuk penyusunan target yang akurat.",
+  "requestFramePermissions": []
+}
