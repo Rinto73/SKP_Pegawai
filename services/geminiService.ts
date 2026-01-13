@@ -2,8 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { RHK, Role } from "../types";
 
-// Initialize Gemini API with API Key from environment variables
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// NOTE: Jangan inisialisasi client di level global module karena akan menyebabkan crash (White Screen)
+// jika process.env.API_KEY tidak ada saat aplikasi dimuat pertama kali.
 
 /**
  * Memberikan saran intervensi RHK menggunakan Gemini AI.
@@ -14,7 +14,28 @@ export const suggestInterventionRhk = async (
   subordinateRole: Role, 
   subordinatePosition: string
 ) => {
+  // 1. Validasi API Key sebelum mencoba inisialisasi
+  // Menggunakan try-catch atau pengecekan aman untuk process.env
+  let apiKey = undefined;
   try {
+    if (typeof process !== "undefined" && process.env) {
+      apiKey = process.env.API_KEY;
+    }
+  } catch (e) {
+    // Abaikan error jika process tidak terdefinisi
+  }
+
+  if (!apiKey) {
+    console.warn("Gemini API Key (process.env.API_KEY) tidak ditemukan atau kosong. Fitur AI dinonaktifkan.");
+    // Mengembalikan null agar aplikasi tetap berjalan normal tanpa fitur AI
+    return null;
+  }
+
+  try {
+    // 2. Inisialisasi client HANYA saat dibutuhkan (Lazy Initialization)
+    // Ini mencegah error "API Key required" saat load aplikasi awal
+    const ai = new GoogleGenAI({ apiKey });
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Berikan saran intervensi Rencana Hasil Kerja (RHK) untuk bawahan berdasarkan RHK atasan berikut:
@@ -60,6 +81,7 @@ export const suggestInterventionRhk = async (
     return JSON.parse(jsonStr.trim());
   } catch (error) {
     console.error("Gemini AI Error:", error);
+    // Return null agar UI tidak crash, hanya fitur saran yang gagal
     return null;
   }
 };
