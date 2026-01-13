@@ -150,7 +150,7 @@ const PartTimeRhkManagement: React.FC<PartTimeRhkManagementProps> = ({ employees
                       </span>
                     </div>
                   </button>
-                ))}
+                ))
               )}
             </div>
           </div>
