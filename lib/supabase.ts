@@ -6,16 +6,16 @@ export const getSupabaseConfig = () => {
   let vKey = '';
   
   try {
-    // Akses aman untuk import.meta.env
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // Gunakan pengecekan tipe yang sangat aman untuk lingkungan Vite
+    // Fix: Access 'env' on import.meta using type assertion to avoid TypeScript error on standard ImportMeta interface (line 10 fix)
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
       // @ts-ignore
-      vUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      vUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
       // @ts-ignore
-      vKey = import.meta.env.VITE_SUPABASE_KEY || '';
+      vKey = (import.meta as any).env.VITE_SUPABASE_KEY || '';
     }
   } catch (e) {
-    console.warn("Gagal mengakses import.meta.env");
+    // Diamkan error env agar tidak menghentikan aplikasi
   }
   
   const savedConfig = localStorage.getItem('SUPABASE_CONFIG');
@@ -36,6 +36,7 @@ const config = getSupabaseConfig();
 
 export const isSupabaseConfigured = config.isConfigured;
 
+// Buat client hanya jika konfigurasi benar-benar ada
 export const supabase = isSupabaseConfigured 
   ? createClient(config.url, config.key) 
   : null;

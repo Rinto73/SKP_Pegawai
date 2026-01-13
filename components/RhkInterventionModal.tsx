@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { RHK, Employee, Indicator } from '../types';
+import { X, Plus, Trash2, Save, Sparkles, RefreshCw } from 'lucide-react';
 import { suggestInterventionRhk } from '../services/geminiService';
-import { Wand2, X, Plus, Trash2, Save } from 'lucide-react';
 
 interface RhkInterventionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  parentRhk?: RHK | null; // Optional because top leader has no parent RHK
+  parentRhk?: RHK | null;
   employee: Employee;
   initialData?: RHK | null;
   onSave: (rhk: Partial<RHK>) => void;
@@ -16,14 +16,13 @@ interface RhkInterventionModalProps {
 const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
   isOpen, onClose, parentRhk, employee, initialData, onSave
 }) => {
-  const [loadingAi, setLoadingAi] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     indicators: [] as Omit<Indicator, 'id'>[]
   });
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
-  // Populate form if editing
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -42,18 +41,24 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
     }
   }, [isOpen, initialData]);
 
-  const handleAiSuggest = async () => {
+  // Handler for AI suggestions
+  const handleSuggestAi = async () => {
     if (!parentRhk) return;
-    setLoadingAi(true);
-    const suggestion = await suggestInterventionRhk(parentRhk, employee.role, employee.position);
-    if (suggestion) {
-      setFormData({
-        title: suggestion.suggestedTitle,
-        description: suggestion.suggestedDescription,
-        indicators: suggestion.indicators
-      });
+    setIsSuggesting(true);
+    try {
+      const suggestion = await suggestInterventionRhk(parentRhk, employee.role, employee.position);
+      if (suggestion) {
+        setFormData({
+          title: suggestion.title,
+          description: suggestion.description,
+          indicators: suggestion.indicators
+        });
+      }
+    } catch (err) {
+      console.error("AI Suggestion failed", err);
+    } finally {
+      setIsSuggesting(false);
     }
-    setLoadingAi(false);
   };
 
   const addIndicator = () => {
@@ -91,25 +96,27 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
 
         <div className="flex-1 overflow-auto p-6 space-y-6">
           {parentRhk && (
-            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
-              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">RHK Pimpinan yang diintervensi</span>
-              <p className="font-semibold text-slate-800 mt-1">{parentRhk.title}</p>
-              <p className="text-xs text-slate-600 mt-1">{parentRhk.description}</p>
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex justify-between items-start">
+              <div className="flex-1">
+                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">RHK Pimpinan yang diintervensi</span>
+                <p className="font-semibold text-slate-800 mt-1">{parentRhk.title}</p>
+                <p className="text-xs text-slate-600 mt-1">{parentRhk.description}</p>
+              </div>
+              {!isEditMode && (
+                <button 
+                  onClick={handleSuggestAi}
+                  disabled={isSuggesting}
+                  className="ml-4 flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-100 active:scale-95 shrink-0"
+                >
+                  {isSuggesting ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  <span>{isSuggesting ? 'Berpikir...' : 'Saran AI'}</span>
+                </button>
+              )}
             </div>
           )}
 
           <div className="flex justify-between items-center">
             <label className="block text-sm font-bold text-slate-700">Detail Rencana Hasil Kerja (RHK)</label>
-            {parentRhk && (
-              <button 
-                onClick={handleAiSuggest}
-                disabled={loadingAi}
-                className="flex items-center space-x-2 text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md active:scale-95"
-              >
-                <Wand2 size={14} />
-                <span>{loadingAi ? 'Menganalisis...' : 'Optimasi AI'}</span>
-              </button>
-            )}
           </div>
 
           <div className="space-y-4">
@@ -221,7 +228,6 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
             Batal
           </button>
           <button 
-            // Fixed type error by casting formData to any as parent handles ID generation for indicators
             onClick={() => onSave(formData as any)}
             className="px-8 py-2.5 text-sm font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center space-x-2 active:scale-95"
           >
