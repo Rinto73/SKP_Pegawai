@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKP Cascading System</title>
     <script>
-        // Menyembunyikan warning "cdn.tailwindcss.com should not be used in production"
-        // Hal ini dilakukan karena aplikasi berjalan di lingkungan 'no-build' (tanpa bundler)
-        // sehingga penggunaan CDN adalah metode yang valid untuk setup ini.
+        // Intercept Tailwind warnings
         (function() {
             var origWarn = console.warn;
             console.warn = function(...args) {
@@ -17,74 +15,55 @@
             };
         })();
 
-        // Global Error Handling untuk menangkap error di luar React tree (sebelum React di-mount)
+        // Global Error Handler
         window.onerror = function(message, source, lineno, colno, error) {
-            const errorMessage = `Aplikasi mengalami kesalahan fatal: ${message} di ${source}:${lineno}`;
-            console.error("Global Error Caught:", errorMessage, error);
-            document.body.innerHTML = `
-                <div class="min-h-screen bg-rose-50 flex items-center justify-center p-6 text-center">
-                    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-rose-200">
-                        <svg class="text-rose-600 mx-auto mb-6" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        <h1 class="text-2xl font-black text-slate-800 tracking-tight mb-2">Terjadi Kesalahan Fatal!</h1>
-                        <p class="text-slate-500 text-sm leading-relaxed">
-                            Aplikasi tidak dapat dimuat. Mohon hubungi administrator sistem dan berikan detail berikut:
-                        </p>
-                        <details class="text-xs text-slate-600 mt-6 p-4 bg-slate-50 rounded-xl text-left border border-slate-100">
-                            <summary class="font-bold cursor-pointer text-slate-700">Detail Kesalahan</summary>
-                            <pre class="mt-2 whitespace-pre-wrap break-all text-slate-500">
-                                ${errorMessage}
-                                ${error ? error.stack : ''}
-                            </pre>
-                        </details>
-                        <button onclick="window.location.reload()" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-95">
-                            Muat Ulang Halaman
-                        </button>
-                    </div>
-                </div>
-            `;
-            return true; // Mencegah error muncul di console juga
-        };
-
-        window.onunhandledrejection = function(event) {
-            const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
-            console.error("Global Promise Rejection Caught:", errorMessage, event.reason);
-            // Anda bisa menggunakan logika yang sama dengan window.onerror untuk menampilkan UI
-            window.onerror(errorMessage, 'promise_rejection', 0, 0, event.reason);
-            return true;
+            console.error("Global Error:", message, "at", source, ":", lineno);
+            const root = document.getElementById('root');
+            if (root && root.innerHTML.includes('loader-placeholder')) {
+                root.innerHTML = `<div class="p-10 text-center"><h1 class="text-red-600 font-bold">Gagal Memuat Aplikasi</h1><p class="text-sm text-gray-500">${message}</p><button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Muat Ulang</button></div>`;
+            }
         };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        #root:empty { display: none; }
     </style>
     <script>
-      // Shim global untuk process.env agar kompatibel dengan library berbasis Node.js di browser
-      // Tambahkan API_KEY di sini agar tersedia untuk Gemini API
-      window.process = window.process || { 
+      window.process = { 
         env: { 
           NODE_ENV: 'development',
-          API_KEY: '' // Pastikan API_KEY ada. Jika Anda punya key, masukkan di sini.
+          API_KEY: '' 
         } 
       };
     </script>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@19.2.3/",
-    "react": "https://esm.sh/react@19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@19.2.3/",
-    "react-dom": "https://esm.sh/react-dom@19.2.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.28.0",
     "xlsx": "https://esm.sh/xlsx@0.18.5",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.48.1",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.0",
+    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
 <body class="bg-slate-50 text-slate-900">
-    <div id="root"></div>
+    <div id="root">
+        <!-- Placeholder agar layar tidak putih total saat JS loading -->
+        <div id="loader-placeholder" class="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h2 class="text-xl font-bold tracking-tight">E-KINERJA</h2>
+            <p class="text-slate-400 text-xs mt-2 animate-pulse uppercase tracking-widest">Menyiapkan Antarmuka...</p>
+        </div>
+    </div>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>

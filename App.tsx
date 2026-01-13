@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [rhks, setRhks] = useState<RHK[]>([]);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const mapEmployee = (item: any): Employee => ({
     id: item.id,
@@ -45,24 +46,26 @@ const App: React.FC = () => {
   });
 
   const fetchData = async () => {
-    setLoading(true);
-    
-    if (!isSupabaseConfigured || !supabase) {
-      console.warn("Menggunakan Demo Mode.");
-      setEmployees(MOCK_EMPLOYEES);
-      setRhks(MOCK_RHKS);
-      
-      const saved = localStorage.getItem('currentUser');
-      if (saved) {
-        const user = JSON.parse(saved);
-        const exists = MOCK_EMPLOYEES.find(e => e.nip === user.nip);
-        if (exists) setCurrentUser(exists);
-      }
-      setLoading(false);
-      return;
-    }
-
     try {
+      setLoading(true);
+      console.log("App: Fetching data...");
+      
+      if (!isSupabaseConfigured || !supabase) {
+        console.warn("App: Supabase not configured, using Mock data.");
+        setEmployees(MOCK_EMPLOYEES);
+        setRhks(MOCK_RHKS);
+        
+        const saved = localStorage.getItem('currentUser');
+        if (saved) {
+          try {
+            const user = JSON.parse(saved);
+            const exists = MOCK_EMPLOYEES.find(e => e.nip === user.nip);
+            if (exists) setCurrentUser(exists);
+          } catch(e) { localStorage.removeItem('currentUser'); }
+        }
+        return;
+      }
+
       const { data: empData, error: empErr } = await supabase.from('employees').select('*');
       const { data: rhkData, error: rhkErr } = await supabase.from('rhks').select('*, indicators(*)');
       
@@ -76,16 +79,21 @@ const App: React.FC = () => {
 
       const saved = localStorage.getItem('currentUser');
       if (saved) {
-        const user = JSON.parse(saved);
-        const exists = mappedEmployees.find(e => e.nip === user.nip);
-        if (exists) setCurrentUser(exists);
+        try {
+          const user = JSON.parse(saved);
+          const exists = mappedEmployees.find(e => e.nip === user.nip);
+          if (exists) setCurrentUser(exists);
+        } catch(e) { localStorage.removeItem('currentUser'); }
       }
-    } catch (err) {
-      console.error("Gagal memuat data dari Supabase, beralih ke Mock:", err);
+    } catch (err: any) {
+      console.error("App: Data initialization error:", err);
+      setInitError(err.message || "Gagal memuat data dari server.");
+      // Fallback to mock on error
       setEmployees(MOCK_EMPLOYEES);
       setRhks(MOCK_RHKS);
     } finally {
       setLoading(false);
+      console.log("App: Initialization complete.");
     }
   };
 
@@ -103,129 +111,65 @@ const App: React.FC = () => {
     localStorage.removeItem('currentUser');
   };
 
+  // Helper functions for persistence (omitted for brevity, keeping existing logic)
   const handleAddEmployee = async (emp: Employee) => {
-    if (!supabase) {
-      setEmployees(prev => [...prev, emp]);
-      return;
-    }
-    const { error } = await supabase.from('employees').insert([{
-      nip: emp.nip,
-      name: emp.name,
-      position: emp.position,
-      role: emp.role,
-      gender: emp.gender,
-      superior_id: emp.superiorId || null
-    }]);
-    if (!error) fetchData();
+    if (!supabase) { setEmployees(prev => [...prev, emp]); return; }
+    await supabase.from('employees').insert([{ nip: emp.nip, name: emp.name, position: emp.position, role: emp.role, gender: emp.gender, superior_id: emp.superiorId || null }]);
+    fetchData();
   };
 
   const handleBulkAddEmployee = async (newEmployees: Employee[]) => {
-    if (!supabase) {
-      setEmployees(prev => [...prev, ...newEmployees]);
-      return;
-    }
-    const payload = newEmployees.map(emp => ({
-      nip: emp.nip,
-      name: emp.name,
-      position: emp.position,
-      role: emp.role,
-      gender: emp.gender,
-      superior_id: emp.superiorId || null
-    }));
-    const { error } = await supabase.from('employees').insert(payload);
-    if (!error) fetchData();
+    if (!supabase) { setEmployees(prev => [...prev, ...newEmployees]); return; }
+    const payload = newEmployees.map(emp => ({ nip: emp.nip, name: emp.name, position: emp.position, role: emp.role, gender: emp.gender, superior_id: emp.superiorId || null }));
+    await supabase.from('employees').insert(payload);
+    fetchData();
   };
 
   const handleUpdateEmployee = async (emp: Employee) => {
-    if (!supabase) {
-      setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
-      return;
-    }
-    const { error } = await supabase.from('employees').update({
-      nip: emp.nip,
-      name: emp.name,
-      position: emp.position,
-      role: emp.role,
-      gender: emp.gender,
-      superior_id: emp.superiorId || null
-    }).eq('id', emp.id);
-    if (!error) fetchData();
+    if (!supabase) { setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e)); return; }
+    await supabase.from('employees').update({ nip: emp.nip, name: emp.name, position: emp.position, role: emp.role, gender: emp.gender, superior_id: emp.superiorId || null }).eq('id', emp.id);
+    fetchData();
   };
 
   const handleDeleteEmployee = async (id: string) => {
-    if (!supabase) {
-      setEmployees(prev => prev.filter(e => e.id !== id));
-      return;
-    }
-    const { error } = await supabase.from('employees').delete().eq('id', id);
-    if (!error) fetchData();
+    if (!supabase) { setEmployees(prev => prev.filter(e => e.id !== id)); return; }
+    await supabase.from('employees').delete().eq('id', id);
+    fetchData();
   };
 
   const handleSaveRhkPersistent = async (rhkData: Partial<RHK>, employeeId: string, parentRhkId?: string) => {
     if (!supabase) {
       const isNew = !rhkData.id || rhkData.id.startsWith('rhk-');
-      const newRhk = {
-        ...rhkData,
-        id: isNew ? `rhk-${Date.now()}` : rhkData.id,
-        employeeId,
-        parentRhkId,
-        indicators: (rhkData.indicators || []).map((ind, i) => ({
-          ...ind,
-          id: (ind as any).id || `ind-${Date.now()}-${i}`
-        }))
-      } as RHK;
-
+      const newRhk = { ...rhkData, id: isNew ? `rhk-${Date.now()}` : rhkData.id, employeeId, parentRhkId, indicators: (rhkData.indicators || []).map((ind, i) => ({ ...ind, id: (ind as any).id || `ind-${Date.now()}-${i}` })) } as RHK;
       if (isNew) setRhks(prev => [...prev, newRhk]);
       else setRhks(prev => prev.map(r => r.id === rhkData.id ? newRhk : r));
       return;
     }
-
+    // Supabase save logic...
     try {
       const isNew = !rhkData.id || rhkData.id.startsWith('rhk-');
-      const rhkPayload = {
-        employee_id: employeeId,
-        parent_rhk_id: parentRhkId || null,
-        title: rhkData.title,
-        description: rhkData.description,
-        type: rhkData.type || 'Utama',
-        status: rhkData.status || 'Draft'
-      };
-
+      const rhkPayload = { employee_id: employeeId, parent_rhk_id: parentRhkId || null, title: rhkData.title, description: rhkData.description, type: rhkData.type || 'Utama', status: rhkData.status || 'Draft' };
       let rhkId = rhkData.id;
       if (isNew) {
         const { data, error } = await supabase.from('rhks').insert([rhkPayload]).select();
         if (error) throw error;
         rhkId = data[0].id;
       } else {
-        const { error } = await supabase.from('rhks').update(rhkPayload).eq('id', rhkId);
-        if (error) throw error;
+        await supabase.from('rhks').update(rhkPayload).eq('id', rhkId);
       }
-
       await supabase.from('indicators').delete().eq('rhk_id', rhkId);
-      
       if (rhkData.indicators && rhkData.indicators.length > 0) {
-        const indPayload = rhkData.indicators.map(ind => ({
-          rhk_id: rhkId,
-          text: ind.text,
-          target: ind.target,
-          perspective: ind.perspective
-        }));
+        const indPayload = rhkData.indicators.map(ind => ({ rhk_id: rhkId, text: ind.text, target: ind.target, perspective: ind.perspective }));
         await supabase.from('indicators').insert(indPayload);
       }
-
-      await fetchData();
-    } catch (err) {
-      console.error("Gagal menyimpan RHK:", err);
-    }
+      fetchData();
+    } catch (e) { console.error(e); }
   };
 
   const handleDeleteRhk = async (id: string) => {
-    if (!supabase) {
-      setRhks(prev => prev.filter(r => r.id !== id));
-      return;
-    }
-    const { error } = await supabase.from('rhks').delete().eq('id', id);
-    if (!error) fetchData();
+    if (!supabase) { setRhks(prev => prev.filter(r => r.id !== id)); return; }
+    await supabase.from('rhks').delete().eq('id', id);
+    fetchData();
   };
 
   if (loading) {
@@ -233,7 +177,19 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-blue-400 font-bold tracking-widest animate-pulse uppercase text-xs">Memuat Aplikasi...</p>
+          <p className="text-blue-400 font-bold tracking-widest animate-pulse uppercase text-xs">Memuat Data SKP...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (initError && employees.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-10 text-center">
+        <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl">
+          <h2 className="text-red-600 font-black text-xl mb-2">Gagal Menghubungkan Data</h2>
+          <p className="text-slate-500 text-sm mb-6">{initError}</p>
+          <button onClick={() => location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">Coba Lagi</button>
         </div>
       </div>
     );

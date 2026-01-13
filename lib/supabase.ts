@@ -2,33 +2,19 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const getSupabaseConfig = () => {
-  let vUrl = '';
-  let vKey = '';
-  
-  try {
-    // Gunakan pengecekan tipe yang sangat aman untuk lingkungan Vite
-    // Fix: Access 'env' on import.meta using type assertion to avoid TypeScript error on standard ImportMeta interface (line 10 fix)
-    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
-      // @ts-ignore
-      vUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
-      // @ts-ignore
-      vKey = (import.meta as any).env.VITE_SUPABASE_KEY || '';
-    }
-  } catch (e) {
-    // Diamkan error env agar tidak menghentikan aplikasi
-  }
-  
+  // Hanya ambil dari Local Storage atau variabel global jika ada
   const savedConfig = localStorage.getItem('SUPABASE_CONFIG');
   const local = savedConfig ? JSON.parse(savedConfig) : null;
 
-  const url = local?.url || vUrl || '';
-  const key = local?.key || vKey || '';
+  // Default kosong untuk demo mode
+  const url = local?.url || '';
+  const key = local?.key || '';
 
   return {
     url,
     key,
     isConfigured: Boolean(url && key),
-    source: local?.url ? 'Local Storage' : (vUrl ? 'Vercel/Vite Env' : 'None')
+    source: local?.url ? 'Local Storage' : 'None'
   };
 };
 
@@ -36,7 +22,14 @@ const config = getSupabaseConfig();
 
 export const isSupabaseConfigured = config.isConfigured;
 
-// Buat client hanya jika konfigurasi benar-benar ada
-export const supabase = isSupabaseConfigured 
-  ? createClient(config.url, config.key) 
-  : null;
+// Inisialisasi client secara aman
+let supabaseInstance = null;
+if (isSupabaseConfigured) {
+  try {
+    supabaseInstance = createClient(config.url, config.key);
+  } catch (e) {
+    console.error("Supabase Init Error:", e);
+  }
+}
+
+export const supabase = supabaseInstance;
