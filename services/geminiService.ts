@@ -2,14 +2,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { RHK, Role } from "../types";
 
-// Di Vite, gunakan import.meta.env.VITE_...
-// Pastikan Anda menambahkan VITE_GEMINI_API_KEY di environment variables Vercel
-const getApiKey = () => {
-  // @ts-ignore
-  return import.meta.env?.VITE_GEMINI_API_KEY || '';
+// Fungsi aman untuk mendapatkan API Key dari process.env tanpa membuat aplikasi crash
+const getApiKey = (): string => {
+  try {
+    // Menggunakan typeof process untuk mengecek eksistensi variabel global di browser
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    console.warn("process.env tidak dapat diakses.");
+  }
+  return '';
 };
 
 const apiKey = getApiKey();
+// Hanya inisialisasi jika key tersedia
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export const suggestInterventionRhk = async (
@@ -18,7 +25,7 @@ export const suggestInterventionRhk = async (
   subordinatePosition: string
 ) => {
   if (!ai) {
-    console.error("Gemini API Key tidak ditemukan. Pastikan VITE_GEMINI_API_KEY sudah diatur.");
+    console.error("Gemini API Key (process.env.API_KEY) tidak ditemukan.");
     return null;
   }
 

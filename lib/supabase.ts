@@ -2,13 +2,13 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const getSupabaseConfig = () => {
-  // Gunakan import.meta.env untuk Vite
+  // Akses aman untuk import.meta.env (Vite)
   // @ts-ignore
-  const vUrl = import.meta.env?.VITE_SUPABASE_URL;
+  const vUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : '';
   // @ts-ignore
-  const vKey = import.meta.env?.VITE_SUPABASE_KEY;
+  const vKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_KEY : '';
   
-  // Fallback untuk local storage override
+  // Local storage sebagai override manual jika dibutuhkan
   const savedConfig = localStorage.getItem('SUPABASE_CONFIG');
   const local = savedConfig ? JSON.parse(savedConfig) : null;
 
@@ -19,7 +19,7 @@ export const getSupabaseConfig = () => {
     url,
     key,
     isConfigured: Boolean(url && key),
-    source: local?.url ? 'Local Storage' : (vUrl ? 'Vercel/Vite Env' : 'Default')
+    source: local?.url ? 'Local Storage' : (vUrl ? 'Vercel/Vite Env' : 'None')
   };
 };
 
@@ -27,7 +27,7 @@ const config = getSupabaseConfig();
 
 export const isSupabaseConfigured = config.isConfigured;
 
-// Inisialisasi client dengan pengecekan aman
+// Inisialisasi client hanya jika konfigurasi valid
 export const supabase = isSupabaseConfigured 
   ? createClient(config.url, config.key) 
   : null as any;
