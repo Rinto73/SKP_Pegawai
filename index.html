@@ -11,8 +11,8 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
     <script>
-      // Shim minimal untuk mencegah error pada pustaka yang mencari variabel global process
-      window.process = { env: {} };
+      // Shim global untuk process.env agar kompatibel dengan library berbasis Node.js di browser
+      window.process = window.process || { env: { NODE_ENV: 'development' } };
     </script>
 <script type="importmap">
 {
