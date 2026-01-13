@@ -2,32 +2,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { RHK, Role } from "../types";
 
-// Fungsi aman untuk mendapatkan API Key dari process.env tanpa membuat aplikasi crash
-const getApiKey = (): string => {
-  try {
-    // Menggunakan typeof process untuk mengecek eksistensi variabel global di browser
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-  } catch (e) {
-    console.warn("process.env tidak dapat diakses.");
-  }
-  return '';
-};
-
-const apiKey = getApiKey();
-// Hanya inisialisasi jika key tersedia
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
 export const suggestInterventionRhk = async (
   parentRhk: RHK, 
   subordinateRole: Role, 
   subordinatePosition: string
 ) => {
-  if (!ai) {
+  // Pastikan process.env.API_KEY tersedia sebelum inisialisasi
+  const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
+
+  if (!apiKey) {
     console.error("Gemini API Key (process.env.API_KEY) tidak ditemukan.");
     return null;
   }
+
+  // Sesuai aturan: Gunakan process.env.API_KEY langsung saat inisialisasi
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
     Sebagai ahli manajemen kinerja SDM Aparatur (SKP), buatkan Rencana Hasil Kerja (RHK) Intervensi untuk bawahan.

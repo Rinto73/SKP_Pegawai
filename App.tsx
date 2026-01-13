@@ -8,7 +8,7 @@ import EmployeeManagement from './views/EmployeeManagement';
 import MySkp from './views/MySkp';
 import Settings from './views/Settings';
 import Login from './views/Login';
-import { Employee, RHK, Role, Indicator } from './types';
+import { Employee, RHK, Role } from './types';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { MOCK_EMPLOYEES, MOCK_RHKS } from './constants';
 
@@ -18,7 +18,6 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper untuk memetakan data DB ke Interface TS
   const mapEmployee = (item: any): Employee => ({
     id: item.id,
     nip: item.nip,
@@ -48,9 +47,8 @@ const App: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     
-    // Jika Supabase belum dikonfigurasi, gunakan data MOCK
-    if (!isSupabaseConfigured) {
-      console.warn("Supabase tidak terdeteksi. Menggunakan Demo Mode dengan data lokal.");
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn("Menggunakan Demo Mode.");
       setEmployees(MOCK_EMPLOYEES);
       setRhks(MOCK_RHKS);
       
@@ -83,8 +81,7 @@ const App: React.FC = () => {
         if (exists) setCurrentUser(exists);
       }
     } catch (err) {
-      console.error("Gagal memuat data dari Supabase:", err);
-      // Fallback ke data mock jika error saat runtime
+      console.error("Gagal memuat data dari Supabase, beralih ke Mock:", err);
       setEmployees(MOCK_EMPLOYEES);
       setRhks(MOCK_RHKS);
     } finally {
@@ -106,26 +103,24 @@ const App: React.FC = () => {
     localStorage.removeItem('currentUser');
   };
 
-  // --- EMPLOYEE ACTIONS ---
   const handleAddEmployee = async (emp: Employee) => {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       setEmployees(prev => [...prev, emp]);
       return;
     }
-    const { data, error } = await supabase.from('employees').insert([{
+    const { error } = await supabase.from('employees').insert([{
       nip: emp.nip,
       name: emp.name,
       position: emp.position,
       role: emp.role,
       gender: emp.gender,
       superior_id: emp.superiorId || null
-    }]).select();
-    
-    if (!error && data) fetchData();
+    }]);
+    if (!error) fetchData();
   };
 
   const handleBulkAddEmployee = async (newEmployees: Employee[]) => {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       setEmployees(prev => [...prev, ...newEmployees]);
       return;
     }
@@ -142,7 +137,7 @@ const App: React.FC = () => {
   };
 
   const handleUpdateEmployee = async (emp: Employee) => {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
       return;
     }
@@ -158,7 +153,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteEmployee = async (id: string) => {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       setEmployees(prev => prev.filter(e => e.id !== id));
       return;
     }
@@ -166,9 +161,8 @@ const App: React.FC = () => {
     if (!error) fetchData();
   };
 
-  // --- RHK ACTIONS ---
   const handleSaveRhkPersistent = async (rhkData: Partial<RHK>, employeeId: string, parentRhkId?: string) => {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       const isNew = !rhkData.id || rhkData.id.startsWith('rhk-');
       const newRhk = {
         ...rhkData,
@@ -187,7 +181,6 @@ const App: React.FC = () => {
     }
 
     try {
-      // 1. Upsert RHK
       const isNew = !rhkData.id || rhkData.id.startsWith('rhk-');
       const rhkPayload = {
         employee_id: employeeId,
@@ -208,7 +201,6 @@ const App: React.FC = () => {
         if (error) throw error;
       }
 
-      // 2. Refresh Indicators
       await supabase.from('indicators').delete().eq('rhk_id', rhkId);
       
       if (rhkData.indicators && rhkData.indicators.length > 0) {
@@ -224,12 +216,11 @@ const App: React.FC = () => {
       await fetchData();
     } catch (err) {
       console.error("Gagal menyimpan RHK:", err);
-      alert("Terjadi kesalahan saat menyimpan data ke database.");
     }
   };
 
   const handleDeleteRhk = async (id: string) => {
-    if (!isSupabaseConfigured) {
+    if (!supabase) {
       setRhks(prev => prev.filter(r => r.id !== id));
       return;
     }
@@ -242,7 +233,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-blue-400 font-bold tracking-widest animate-pulse uppercase text-xs">Menyinkronkan Basis Data...</p>
+          <p className="text-blue-400 font-bold tracking-widest animate-pulse uppercase text-xs">Memuat Aplikasi...</p>
         </div>
       </div>
     );
@@ -257,69 +248,21 @@ const App: React.FC = () => {
   return (
     <Router>
       <Layout currentUser={currentUser} onLogout={handleLogout}>
-        {/* Banner Demo Mode */}
         {!isSupabaseConfigured && (
           <div className="mb-6 bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-              <p className="text-sm font-bold text-amber-800">Demo Mode Aktif: Konfigurasi Supabase Belum Ditemukan</p>
+              <p className="text-sm font-bold text-amber-800">Demo Mode: Menggunakan data lokal sementara.</p>
             </div>
-            <p className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">Buka Menu Pengaturan untuk Menghubungkan</p>
           </div>
         )}
 
         <Routes>
-          <Route 
-            path="/" 
-            element={isAdmin ? <Dashboard employees={employees} rhks={rhks} /> : <Navigate to="/my-skp" replace />} 
-          />
-          <Route 
-            path="/matrix" 
-            element={
-              isAdmin ? (
-                <CascadingMatrix 
-                  employees={employees} 
-                  rhks={rhks} 
-                  onUpdateRhks={setRhks}
-                  onSaveRhkRemote={handleSaveRhkPersistent}
-                  onDeleteRhkRemote={handleDeleteRhk}
-                  onUpdateEmployees={setEmployees}
-                />
-              ) : (
-                <Navigate to="/my-skp" replace />
-              )
-            } 
-          />
-          <Route 
-            path="/employees" 
-            element={
-              isAdmin ? (
-                <EmployeeManagement 
-                  employees={employees} 
-                  onAdd={handleAddEmployee}
-                  onBulkAdd={handleBulkAddEmployee}
-                  onUpdate={handleUpdateEmployee}
-                  onDelete={handleDeleteEmployee}
-                />
-              ) : (
-                <Navigate to="/my-skp" replace />
-              )
-            } 
-          />
-          <Route 
-            path="/settings" 
-            element={
-              isAdmin ? (
-                <Settings />
-              ) : (
-                <Navigate to="/my-skp" replace />
-              )
-            } 
-          />
-          <Route 
-            path="/my-skp" 
-            element={<MySkp employee={currentUser} rhks={rhks} employees={employees} />} 
-          />
+          <Route path="/" element={isAdmin ? <Dashboard employees={employees} rhks={rhks} /> : <Navigate to="/my-skp" replace />} />
+          <Route path="/matrix" element={isAdmin ? <CascadingMatrix employees={employees} rhks={rhks} onUpdateRhks={setRhks} onSaveRhkRemote={handleSaveRhkPersistent} onDeleteRhkRemote={handleDeleteRhk} onUpdateEmployees={setEmployees} /> : <Navigate to="/my-skp" replace />} />
+          <Route path="/employees" element={isAdmin ? <EmployeeManagement employees={employees} onAdd={handleAddEmployee} onBulkAdd={handleBulkAddEmployee} onUpdate={handleUpdateEmployee} onDelete={handleDeleteEmployee} /> : <Navigate to="/my-skp" replace />} />
+          <Route path="/settings" element={isAdmin ? <Settings /> : <Navigate to="/my-skp" replace />} />
+          <Route path="/my-skp" element={<MySkp employee={currentUser} rhks={rhks} employees={employees} />} />
           <Route path="*" element={<Navigate to={isAdmin ? "/" : "/my-skp"} replace />} />
         </Routes>
       </Layout>
