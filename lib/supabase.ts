@@ -1,23 +1,19 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Fungsi helper untuk mengambil konfigurasi dari Vite env atau local storage
 export const getSupabaseConfig = () => {
-  // Mencoba mengambil dari import.meta.env (Vite/Vercel) atau process.env
+  // Gunakan import.meta.env untuk Vite
   // @ts-ignore
   const vUrl = import.meta.env?.VITE_SUPABASE_URL;
   // @ts-ignore
   const vKey = import.meta.env?.VITE_SUPABASE_KEY;
   
-  const envUrl = vUrl || process.env.SUPABASE_URL;
-  const envKey = vKey || process.env.SUPABASE_ANON_KEY;
-  
-  // Local storage sebagai fallback atau override
+  // Fallback untuk local storage override
   const savedConfig = localStorage.getItem('SUPABASE_CONFIG');
   const local = savedConfig ? JSON.parse(savedConfig) : null;
 
-  const url = local?.url || envUrl || '';
-  const key = local?.key || envKey || '';
+  const url = local?.url || vUrl || '';
+  const key = local?.key || vKey || '';
 
   return {
     url,
@@ -29,10 +25,9 @@ export const getSupabaseConfig = () => {
 
 const config = getSupabaseConfig();
 
-// Mengecek apakah konfigurasi sudah lengkap
 export const isSupabaseConfigured = config.isConfigured;
 
-// Inisialisasi client
+// Inisialisasi client dengan pengecekan aman
 export const supabase = isSupabaseConfigured 
   ? createClient(config.url, config.key) 
   : null as any;
