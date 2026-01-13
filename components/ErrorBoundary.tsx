@@ -1,37 +1,54 @@
 
-import React, { Component, ReactNode } from 'react';
+import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface ErrorBoundaryProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
-  errorInfo: React.ErrorInfo | null;
+  errorInfo: ErrorInfo | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+/**
+ * ErrorBoundary catches JavaScript errors anywhere in their child component tree,
+ * logs those errors, and displays a fallback UI instead of the component tree that crashed.
+ */
+// Fix: Explicitly extend React.Component with generics to ensure that state and props are correctly inherited and typed.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    // Fix: Initialize the state property inherited from React.Component to track error presence and details.
+    this.state = { 
+      hasError: false, 
+      error: null, 
+      errorInfo: null 
+    };
   }
 
+  /**
+   * Updates state so the next render will show the fallback UI.
+   */
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true, error, errorInfo: null };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // You can also log the error to an error reporting service
+  /**
+   * Lifecycle method to catch errors in children and record error information.
+   */
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log the error for debugging purposes
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
+    // Fix: Use the inherited setState method to update the error state.
     this.setState({ errorInfo });
   }
 
   render() {
+    // Fix: Use the inherited state property to determine whether to render the fallback UI.
     if (this.state.hasError) {
-      // You can render any custom fallback UI
+      // Fallback UI for catastrophic failures
       return (
         <div className="min-h-screen bg-rose-50 flex items-center justify-center p-6">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 text-center p-8 border border-rose-200">
@@ -42,6 +59,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             <p className="text-slate-500 text-sm leading-relaxed">
               Aplikasi mengalami masalah yang tidak terduga. Silakan coba muat ulang halaman.
             </p>
+            {/* Fix: Safely access state.error and state.errorInfo inherited from React.Component. */}
             {this.state.error && (
               <details className="text-xs text-slate-600 mt-6 p-4 bg-slate-50 rounded-xl text-left border border-slate-100">
                 <summary className="font-bold cursor-pointer text-slate-700">Detail Error</summary>
@@ -62,6 +80,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       );
     }
 
+    // Fix: Use the inherited props property to render children when no error occurs.
     return this.props.children;
   }
 }

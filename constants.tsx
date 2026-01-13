@@ -37,22 +37,24 @@ export const MOCK_EMPLOYEES: Employee[] = [
     gender: 'P'
   },
   { 
-    id: '4', 
-    nip: '198504042005041004', 
-    name: 'Dedi Kurniawan, S.Sos', 
-    position: 'Kepala Sub Bagian Kinerja', 
-    role: Role.KASUBAG, 
-    superiorId: '3', 
-    gender: 'L'
+    id: 'pt-1', 
+    nip: 'PPPK-001', 
+    name: 'Ahmad Faisal', 
+    position: 'Tenaga Kebersihan (Paruh Waktu)', 
+    role: Role.PELAKSANA, 
+    superiorId: '1', 
+    gender: 'L',
+    isPartTime: true
   },
   { 
-    id: '5', 
-    nip: '199005052010052005', 
-    name: 'Rina Amalia', 
-    position: 'Analis Kebijakan Pelaksana', 
+    id: 'pt-2', 
+    nip: 'PPPK-002', 
+    name: 'Siti Aminah', 
+    position: 'Tenaga Administrasi (Paruh Waktu)', 
     role: Role.PELAKSANA, 
-    superiorId: '4', 
-    gender: 'P'
+    superiorId: '1', 
+    gender: 'P',
+    isPartTime: true
   },
 ];
 

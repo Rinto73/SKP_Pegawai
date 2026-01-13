@@ -16,6 +16,7 @@ export interface Employee {
   role: Role;
   gender: 'L' | 'P';
   superiorId?: string;
+  isPartTime?: boolean; // Flag untuk PPPK Paruh Waktu
 }
 
 export interface Indicator {

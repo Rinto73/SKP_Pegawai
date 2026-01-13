@@ -1,8 +1,6 @@
 
+import { GoogleGenAI, Type } from "@google/genai";
 import { RHK, Role } from "../types";
-
-// NOTE: Menggunakan dynamic import untuk @google/genai
-// Hal ini mencegah aplikasi crash (White Screen) saat loading awal jika terjadi masalah dependensi.
 
 /**
  * Memberikan saran intervensi RHK menggunakan Gemini AI.
@@ -13,27 +11,10 @@ export const suggestInterventionRhk = async (
   subordinateRole: Role, 
   subordinatePosition: string
 ) => {
-  // 1. Validasi API Key
-  let apiKey = undefined;
-  try {
-    if (typeof process !== "undefined" && process.env) {
-      apiKey = process.env.API_KEY;
-    }
-  } catch (e) {}
-
-  if (!apiKey) {
-    console.warn("API Key tidak ditemukan. Fitur AI dinonaktifkan.");
-    return null;
-  }
+  // Fix: Initialize Google GenAI with the API key directly from process.env.API_KEY.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
-    // 2. Load Library secara Dinamis (Lazy Load)
-    // @ts-ignore
-    const module = await import("@google/genai");
-    const { GoogleGenAI, Type } = module;
-
-    const ai = new GoogleGenAI({ apiKey });
-
     const prompt = `Berikan saran intervensi Rencana Hasil Kerja (RHK) untuk bawahan berdasarkan RHK atasan berikut:
       
       RHK Atasan: "${parentRhk.title}"
@@ -46,8 +27,9 @@ export const suggestInterventionRhk = async (
       Tujuan: Buat 1 RHK intervensi yang selaras dengan RHK atasan dan sesuai dengan tugas pokok bawahan. 
       Sertakan juga minimal 2 Indikator Kinerja Individu (IKI) yang relevan (Aspek: Kualitas, Kuantitas, Waktu, atau Biaya).`;
 
+    // Fix: Using gemini-3-pro-preview for advanced reasoning and organizational alignment.
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -74,6 +56,7 @@ export const suggestInterventionRhk = async (
       }
     });
 
+    // Fix: Access the extracted string directly from the 'text' property.
     const jsonStr = response.text;
     if (!jsonStr) return null;
     

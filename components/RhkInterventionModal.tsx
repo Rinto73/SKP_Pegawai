@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { RHK, Employee, Indicator } from '../types';
-import { X, Plus, Trash2, Save, Sparkles, RefreshCw } from 'lucide-react';
-import { suggestInterventionRhk } from '../services/geminiService';
+import { X, Plus, Trash2, Save } from 'lucide-react';
 
 interface RhkInterventionModalProps {
   isOpen: boolean;
@@ -21,7 +20,6 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
     description: '',
     indicators: [] as Omit<Indicator, 'id'>[]
   });
-  const [isSuggesting, setIsSuggesting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,26 +38,6 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
       }
     }
   }, [isOpen, initialData]);
-
-  // Handler for AI suggestions
-  const handleSuggestAi = async () => {
-    if (!parentRhk) return;
-    setIsSuggesting(true);
-    try {
-      const suggestion = await suggestInterventionRhk(parentRhk, employee.role, employee.position);
-      if (suggestion) {
-        setFormData({
-          title: suggestion.title,
-          description: suggestion.description,
-          indicators: suggestion.indicators
-        });
-      }
-    } catch (err) {
-      console.error("AI Suggestion failed", err);
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
 
   const addIndicator = () => {
     setFormData(prev => ({
@@ -102,16 +80,6 @@ const RhkInterventionModal: React.FC<RhkInterventionModalProps> = ({
                 <p className="font-semibold text-slate-800 mt-1">{parentRhk.title}</p>
                 <p className="text-xs text-slate-600 mt-1">{parentRhk.description}</p>
               </div>
-              {!isEditMode && (
-                <button 
-                  onClick={handleSuggestAi}
-                  disabled={isSuggesting}
-                  className="ml-4 flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-100 active:scale-95 shrink-0"
-                >
-                  {isSuggesting ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  <span>{isSuggesting ? 'Berpikir...' : 'Saran AI'}</span>
-                </button>
-              )}
             </div>
           )}
 

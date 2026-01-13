@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TrendingUp, CheckCircle2, AlertCircle, Clock, Search, ShieldCheck } from 'lucide-react';
+import { TrendingUp, AlertCircle, Clock, Search, ShieldCheck } from 'lucide-react';
 import { Employee, RHK } from '../types';
 
 interface DashboardProps {
@@ -10,94 +10,78 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ employees, rhks }) => {
   const stats = [
-    { label: 'Total Pegawai', value: employees.length, icon: <ShieldCheck className="text-blue-600" />, color: 'bg-blue-50' },
-    { label: 'RHK Terisi', value: rhks.length, icon: <TrendingUp className="text-emerald-600" />, color: 'bg-emerald-50' },
-    { label: 'RHK Draft', value: rhks.filter(r => r.status === 'Draft').length, icon: <Clock className="text-amber-600" />, color: 'bg-amber-50' },
-    { label: 'Bawahan Belum Isi', value: employees.filter(e => e.superiorId && !rhks.some(r => r.employeeId === e.id)).length, icon: <AlertCircle className="text-rose-600" />, color: 'bg-rose-50' },
+    { label: 'Total Pegawai', value: employees.length, icon: ShieldCheck, iconColor: "text-blue-600", color: 'bg-blue-50' },
+    { label: 'RHK Terisi', value: rhks.length, icon: TrendingUp, iconColor: "text-emerald-600", color: 'bg-emerald-50' },
+    { label: 'RHK Draft', value: rhks.filter(r => r.status === 'Draft').length, icon: Clock, iconColor: "text-amber-600", color: 'bg-amber-50' },
+    { label: 'Bawahan Belum Isi', value: employees.filter(e => e.superiorId && !rhks.some(r => r.employeeId === e.id)).length, icon: AlertCircle, iconColor: "text-rose-600", color: 'bg-rose-50' },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Ringkasan Kinerja Organisasi</h1>
-        <p className="text-slate-500 text-sm">Pantau progres penyusunan SKP dan cascading di seluruh unit kerja.</p>
+    <div className="max-w-[1600px] mx-auto px-8 md:px-12 lg:px-16 py-10 md:py-16 space-y-12 animate-in fade-in duration-500">
+      <div className="flex flex-col space-y-1">
+        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Ringkasan Kinerja Organisasi</h1>
+        <p className="text-slate-500 text-sm font-medium">Pantau progres penyusunan SKP dan cascading di seluruh unit kerja Pemerintah Daerah.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-            <div className={`p-3 rounded-xl ${stat.color}`}>
-              {stat.icon}
+          <div key={i} className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 flex items-center space-x-6 hover:shadow-md transition-shadow">
+            <div className={`p-5 rounded-2xl ${stat.color}`}>
+              <stat.icon size={28} className={stat.iconColor} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-              <p className="text-2xl font-black text-slate-800">{stat.value}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
+              <p className="text-4xl font-black text-slate-800">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800">Unit Kerja & Progres</h3>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Cari..." 
-                className="pl-10 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none text-black"
-              />
-            </div>
-          </div>
-          <div className="p-0">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100">
-                  <th className="px-6 py-4">Nama Pegawai</th>
-                  <th className="px-6 py-4">Jabatan</th>
-                  <th className="px-6 py-4">Status RHK</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {employees.slice(0, 5).map((emp, idx) => {
-                  const hasRhk = rhks.some(r => r.employeeId === emp.id);
-                  return (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">{emp.name}</td>
-                      <td className="px-6 py-4 text-slate-500 text-xs">{emp.position}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                          hasRhk ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                        }`}>
-                          {hasRhk ? 'Terisi' : 'Belum Ada'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-slate-50/30">
+          <h3 className="font-black text-slate-800 text-lg">Unit Kerja & Progres Pegawai</h3>
+          <div className="relative w-full sm:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Cari nama pegawai..." 
+              className="w-full sm:w-72 pl-12 pr-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none text-black transition-all shadow-sm"
+            />
           </div>
         </div>
-
-        <div className="bg-slate-900 rounded-2xl shadow-xl p-8 text-white space-y-6 relative overflow-hidden flex flex-col justify-center">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 blur-3xl rounded-full -mr-16 -mt-16"></div>
-          <div className="relative z-10">
-            <h3 className="font-black text-xl mb-2">Penyusunan Cerdas</h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Sistem kami menggunakan Gemini AI untuk memastikan cascading kinerja selaras antara pimpinan dan staf.
-            </p>
-          </div>
-          <div className="space-y-4 relative z-10">
-            <div className="bg-white/10 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Status Sistem</p>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <p className="text-xs text-slate-300">Semua Fungsi Siap Digunakan</p>
-              </div>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="bg-slate-50/50 text-slate-400 font-black uppercase text-[10px] tracking-widest border-b border-slate-100">
+                <th className="px-8 py-5">Nama Pegawai</th>
+                <th className="px-8 py-5">Jabatan</th>
+                <th className="px-8 py-5 text-center">Status RHK</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {employees.slice(0, 10).map((emp, idx) => {
+                const hasRhk = rhks.some(r => r.employeeId === emp.id);
+                return (
+                  <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors text-base">{emp.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono tracking-tighter">{emp.nip}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-slate-500 font-medium">{emp.position}</td>
+                    <td className="px-8 py-6 text-center">
+                      <span className={`inline-block px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight ${
+                        hasRhk ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
+                      }`}>
+                        {hasRhk ? 'Terisi' : 'Belum Ada'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
