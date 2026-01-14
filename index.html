@@ -31,10 +31,13 @@
         #root:empty { display: none; }
     </style>
     <script>
+      // Menyediakan akses ke variabel lingkungan Vercel melalui process.env
       window.process = { 
         env: { 
           NODE_ENV: 'development',
-          API_KEY: '' 
+          API_KEY: '',
+          SUPABASE_URL: '', // Akan diisi otomatis oleh platform jika tersedia
+          SUPABASE_ANON_KEY: '' 
         } 
       };
     </script>

@@ -2,11 +2,23 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const getSupabaseConfig = () => {
-  // Hanya ambil dari Local Storage atau variabel global jika ada
+  // 1. Cek Environment Variables (Vercel/Vite/Global)
+  const envUrl = (process.env as any).SUPABASE_URL;
+  const envKey = (process.env as any).SUPABASE_ANON_KEY;
+
+  if (envUrl && envKey) {
+    return {
+      url: envUrl,
+      key: envKey,
+      isConfigured: true,
+      source: 'Vercel/Vite Env'
+    };
+  }
+
+  // 2. Fallback ke Local Storage (Input manual dari menu Settings)
   const savedConfig = localStorage.getItem('SUPABASE_CONFIG');
   const local = savedConfig ? JSON.parse(savedConfig) : null;
 
-  // Default kosong untuk demo mode
   const url = local?.url || '';
   const key = local?.key || '';
 
