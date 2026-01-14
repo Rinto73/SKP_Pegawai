@@ -8,7 +8,6 @@ import EmployeeManagement from './views/EmployeeManagement';
 import MySkp from './views/MySkp';
 import Settings from './views/Settings';
 import Login from './views/Login';
-import PartTimeRhkManagement from './views/PartTimeRhkManagement';
 import { Employee, RHK, Role } from './types';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { MOCK_EMPLOYEES, MOCK_RHKS } from './constants';
@@ -189,7 +188,6 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={isAdmin ? <Dashboard employees={employees} rhks={rhks} /> : <Navigate to="/my-skp" replace />} />
           <Route path="/matrix" element={isAdmin ? <CascadingMatrix employees={employees} rhks={rhks} onUpdateRhks={setRhks} onSaveRhkRemote={handleSaveRhkPersistent} onDeleteRhkRemote={handleDeleteRhk} onUpdateEmployees={setEmployees} /> : <Navigate to="/my-skp" replace />} />
-          <Route path="/part-time" element={isAdmin ? <PartTimeRhkManagement employees={employees} rhks={rhks} onSaveRhkRemote={handleSaveRhkPersistent} onDeleteRhkRemote={handleDeleteRhk} /> : <Navigate to="/my-skp" replace />} />
           <Route path="/employees" element={isAdmin ? <EmployeeManagement employees={employees} onAdd={handleAddEmployee} onBulkAdd={handleBulkAddEmployee} onUpdate={handleUpdateEmployee} onDelete={handleDeleteEmployee} /> : <Navigate to="/my-skp" replace />} />
           <Route path="/settings" element={isAdmin ? <Settings /> : <Navigate to="/my-skp" replace />} />
           <Route path="/my-skp" element={<MySkp employee={currentUser} rhks={rhks} employees={employees} />} />

@@ -17,7 +17,6 @@ const Layout: React.FC<{
   const navItems = isAdmin ? [
     { name: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/' },
     { name: 'Cascading Matrix', icon: <GitMerge size={18} />, path: '/matrix' },
-    { name: 'PPPK Paruh Waktu', icon: <Clock size={18} />, path: '/part-time' },
     { name: 'SKP Saya', icon: <FileText size={18} />, path: '/my-skp' },
     { name: 'Pegawai', icon: <Users size={18} />, path: '/employees' },
   ] : [
