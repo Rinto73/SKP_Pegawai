@@ -25,7 +25,10 @@ const RhkDiagramNode: React.FC<RhkDiagramNodeProps> = ({
 }) => {
   const owner = employees.find(e => e.id === rhk.employeeId);
   const childRhks = rhks.filter(r => r.parentRhkId === rhk.id);
-  const subordinates = owner ? employees.filter(e => e.superiorId === owner.id) : [];
+  
+  // Filter subordinates: Hanya ambil yang BUKAN paruh waktu untuk diagram cascading reguler
+  const subordinates = owner ? employees.filter(e => e.superiorId === owner.id && !e.isPartTime) : [];
+  
   const isExpanded = expandedRhkIds.has(rhk.id);
   const isMenuOpen = activeMenuId === rhk.id;
 
@@ -45,9 +48,7 @@ const RhkDiagramNode: React.FC<RhkDiagramNodeProps> = ({
 
   return (
     <div className="flex flex-col items-center shrink-0">
-      {/* Container untuk garis hierarki yang lebih rapi */}
       <div className={`relative bg-white border-2 rounded-xl shadow-md transition-all z-10 ${getCardBorder(owner.role)}`} style={{ width: `${cardWidth}px` }}>
-        {/* Header - Kompak p-2 */}
         <div className="p-2 border-b border-slate-100 flex items-center space-x-2 bg-slate-50/50 rounded-t-xl">
           <div className="w-7 h-7 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm shrink-0">
             <User size={12} />
@@ -58,7 +59,6 @@ const RhkDiagramNode: React.FC<RhkDiagramNodeProps> = ({
           </div>
         </div>
 
-        {/* Content - Kompak p-2.5 & Judul Full Scroll */}
         <div className="p-2.5 space-y-2">
           <div className="max-h-32 overflow-y-auto custom-scrollbar-mini pr-1">
             <h4 className="text-[11px] font-black text-slate-800 leading-tight">
@@ -79,7 +79,6 @@ const RhkDiagramNode: React.FC<RhkDiagramNodeProps> = ({
           )}
         </div>
 
-        {/* Footer - Kompak py-1.5 */}
         <div className="px-3 py-1.5 bg-slate-50 rounded-b-xl border-t border-slate-100 flex items-center justify-between relative">
           <div className="flex space-x-1">
             <button onClick={(e) => { e.stopPropagation(); onEdit(rhk, owner); }} className="p-1 hover:bg-blue-100 text-blue-600 rounded transition-colors pointer-events-auto">
@@ -154,16 +153,13 @@ const RhkDiagramNode: React.FC<RhkDiagramNodeProps> = ({
         </div>
       </div>
 
-      {/* Logic Garis Hierarki Baru yang Presisi */}
       {isExpanded && childRhks.length > 0 && (
         <div className="relative pt-8 flex flex-col items-center">
-          {/* Garis batang utama dari parent ke cabang */}
           <div className="absolute top-0 w-0.5 h-8 bg-slate-300"></div>
           
           <div className="flex flex-nowrap gap-12 items-start relative">
             {childRhks.map((child, idx) => (
               <div key={child.id} className="relative flex flex-col items-center">
-                {/* Garis horizontal penghubung antar cabang yang "pas" */}
                 {childRhks.length > 1 && (
                   <div className={`absolute top-0 h-0.5 bg-slate-300 transition-all ${
                     idx === 0 ? 'left-1/2 right-0' : 
@@ -172,7 +168,6 @@ const RhkDiagramNode: React.FC<RhkDiagramNodeProps> = ({
                   }`} />
                 )}
                 
-                {/* Garis vertikal ke node anak */}
                 <div className="w-0.5 h-8 bg-slate-300"></div>
                 
                 <RhkDiagramNode 
@@ -226,6 +221,9 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Filter global: Sembunyikan PPPK Paruh Waktu dari diagram cascading reguler
+  const regularEmployees = employees.filter(e => !e.isPartTime);
 
   const toggleRhk = (id: string) => {
     const newSet = new Set(expandedRhkIds);
@@ -289,7 +287,8 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
 
   const handleMouseUp = () => setIsDragging(false);
 
-  const topLeaders = employees.filter(e => e.role === Role.SEKDA);
+  // Gunakan regularEmployees untuk mencari pemimpin tertinggi
+  const topLeaders = regularEmployees.filter(e => e.role === Role.SEKDA);
 
   return (
     <div className="relative min-h-[calc(100vh-80px)] bg-slate-50 flex flex-col overflow-hidden">
@@ -297,7 +296,7 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
         <div className="max-w-[1600px] w-full mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-black text-slate-800 tracking-tight">Diagram Cascading SKP</h1>
-            <p className="text-slate-500 text-sm font-medium">Visualisasi hirarki kinerja pimpinan ke seluruh struktur organisasi daerah.</p>
+            <p className="text-slate-500 text-sm font-medium">Visualisasi hirarki kinerja pimpinan ke seluruh struktur organisasi daerah (Pegawai Reguler).</p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3 bg-blue-50 text-blue-700 px-5 py-3 rounded-2xl border border-blue-100 text-[11px] font-black uppercase tracking-[0.1em]">
@@ -363,7 +362,7 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
                             key={rhk.id} 
                             rhk={rhk} 
                             level={0}
-                            employees={employees}
+                            employees={regularEmployees}
                             rhks={rhks}
                             expandedRhkIds={expandedRhkIds}
                             activeMenuId={activeMenuId}
@@ -391,7 +390,6 @@ const CascadingMatrix: React.FC<CascadingMatrixProps> = ({
         </div>
       </div>
 
-      {/* Navigation Tools */}
       <div className="fixed bottom-12 right-12 z-50 flex items-center bg-white p-3 rounded-[1.75rem] shadow-2xl border border-slate-200 space-x-3 animate-in slide-in-from-bottom-12 duration-500">
         <div className="flex items-center bg-slate-50 rounded-2xl p-2 mr-2">
           <button 
